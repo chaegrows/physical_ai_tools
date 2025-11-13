@@ -99,6 +99,12 @@ export function useRosServiceCaller() {
           case 'stop':
             command_enum = TaskCommand.STOP;
             break;
+          case 'pause':
+            command_enum = TaskCommand.PAUSE;
+            break;
+          case 'resume':
+            command_enum = TaskCommand.RESUME;
+            break;
           case 'next':
             command_enum = TaskCommand.NEXT;
             break;

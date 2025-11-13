@@ -18,7 +18,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import clsx from 'clsx';
 import toast, { useToasterStore } from 'react-hot-toast';
-import { MdPlayArrow, MdStop, MdReplay, MdSkipNext, MdCheck, MdNavigateNext } from 'react-icons/md';
+import { MdPlayArrow, MdStop, MdReplay, MdSkipNext, MdCheck, MdNavigateNext, MdPause, MdPlayCircle } from 'react-icons/md';
 import { useRosServiceCaller } from '../hooks/useRosServiceCaller';
 import CompactSystemStatus from './CompactSystemStatus';
 import EpisodeStatus from './EpisodeStatus';
@@ -79,6 +79,7 @@ export default function ControlPanel() {
   const [hovered, setHovered] = useState(null);
   const [pressed, setPressed] = useState(null);
   const [started, setStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [expandedSystemIndex, setExpandedSystemIndex] = useState(null);
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const startedRef = useRef(started);
@@ -90,6 +91,13 @@ export default function ControlPanel() {
       color: '#1976d2',
       description: page === PageType.RECORD ? 'Start recording task' : 'Start inference',
       shortcut: 'Space',
+    },
+    {
+      label: isPaused ? 'Resume' : 'Pause',
+      icon: isPaused ? MdPlayCircle : MdPause,
+      color: isPaused ? '#388e3c' : '#ff9800',
+      description: isPaused ? 'Resume inference' : 'Pause inference',
+      shortcut: 'P',
     },
     {
       label: 'Stop',
@@ -150,6 +158,8 @@ export default function ControlPanel() {
 
   const buttonEnabled = {
     Start: true,
+    Pause: true,  // Always show, but will be disabled based on isButtonEnabled
+    Resume: true,  // Always show, but will be disabled based on isButtonEnabled
     Stop: true,
     Retry: true,
     Next: true,
@@ -209,6 +219,12 @@ export default function ControlPanel() {
         case 'Start':
           // Start button disabled when task is running or when running flag is true
           return !taskStatus.running;
+        case 'Pause':
+          // Pause button enabled only during inference
+          return taskStatus.running && page === PageType.INFERENCE && !isPaused;
+        case 'Resume':
+          // Resume button enabled only when paused during inference
+          return taskStatus.running && page === PageType.INFERENCE && isPaused;
         case 'Stop':
           if (isInferenceTaskType) {
             return taskStatus.running && taskInfo.recordInferenceMode;
@@ -322,6 +338,10 @@ export default function ControlPanel() {
           }
         } else if (cmd === 'Stop') {
           result = await sendRecordCommand('stop');
+        } else if (cmd === 'Pause') {
+          result = await sendRecordCommand('pause');
+        } else if (cmd === 'Resume') {
+          result = await sendRecordCommand('resume');
         } else if (cmd === 'Retry') {
           result = await sendRecordCommand('rerecord');
         } else if (cmd === 'Next') {
@@ -380,8 +400,16 @@ export default function ControlPanel() {
     (label) => {
       handleControlCommand(label);
       console.log(label + ' command executed');
-      if (label === 'Start') setStarted(true);
-      if (label === 'Stop' || label === 'Finish') setStarted(false);
+      if (label === 'Start') {
+        setStarted(true);
+        setIsPaused(false);
+      }
+      if (label === 'Pause') setIsPaused(true);
+      if (label === 'Resume') setIsPaused(false);
+      if (label === 'Stop' || label === 'Finish') {
+        setStarted(false);
+        setIsPaused(false);
+      }
     },
     [handleControlCommand]
   );
@@ -393,6 +421,13 @@ export default function ControlPanel() {
         return 'Retry';
       } else if (e.key === 'ArrowRight' && isButtonEnabled('Next')) {
         return 'Next';
+      } else if ((e.key === 'p' || e.key === 'P') && page === PageType.INFERENCE) {
+        // Toggle between Pause and Resume with P key
+        if (isPaused && isButtonEnabled('Resume')) {
+          return 'Resume';
+        } else if (!isPaused && isButtonEnabled('Pause')) {
+          return 'Pause';
+        }
       } else if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
         if (isButtonEnabled('Start')) {
           return 'Start';
@@ -409,7 +444,7 @@ export default function ControlPanel() {
       }
       return null;
     },
-    [isButtonEnabled]
+    [isButtonEnabled, page, isPaused]
   );
 
   // Add keyboard press visual feedback
@@ -569,6 +604,7 @@ export default function ControlPanel() {
     <div className={classControlPanelBody}>
       <div className="flex flex-[2] w-full h-full gap-4">
         {buttons.map(({ label, icon: Icon, color, description, shortcut }) => {
+          console.log('Rendering button:', label, 'buttonEnabled[label]:', buttonEnabled[label]);
           const isDisabled = !isButtonEnabled(label);
 
           const tooltipContent = (
@@ -583,6 +619,8 @@ export default function ControlPanel() {
             </div>
           );
 
+          // Show button based on buttonEnabled
+          // For Pause/Resume, use the current label to check
           if (!buttonEnabled[label]) {
             return null;
           }
