@@ -6,6 +6,7 @@ physical_ai_server:
         - cam_wrist_left
         - cam_wrist_right
         - state
+      
 
       camera_topic_list: 
         - cam_head:/zed/zed_node/left/image_rect_color/compressed
