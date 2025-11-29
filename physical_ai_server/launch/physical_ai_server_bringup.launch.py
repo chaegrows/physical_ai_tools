@@ -43,7 +43,10 @@ def generate_launch_description():
             os.path.join(
                 rosbridge_pkg_dir, 'launch', 'rosbridge_websocket_launch.xml'
             )
-        )
+        ),
+        launch_arguments={
+            'delay_between_messages': '0.0'
+        }.items()
     )
 
     # Include rosbag_recorder service_bag_recorder node
