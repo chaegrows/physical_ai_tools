@@ -37,6 +37,7 @@ export default function FileBrowserModal({
 }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [currentPath, setCurrentPath] = useState(initialPath);
+  const [currentPathHasTarget, setCurrentPathHasTarget] = useState(false);
 
   const handleFileSelect = useCallback((item) => {
     setSelectedItem(item);
@@ -46,6 +47,12 @@ export default function FileBrowserModal({
     setCurrentPath(path);
     // Clear selection when path changes (navigation)
     setSelectedItem(null);
+    // Reset current path target check
+    setCurrentPathHasTarget(false);
+  }, []);
+
+  const handleDirectoryTargetCheck = useCallback((hasTarget) => {
+    setCurrentPathHasTarget(hasTarget);
   }, []);
 
   const handleConfirm = useCallback(() => {
@@ -53,17 +60,30 @@ export default function FileBrowserModal({
       onFileSelect(selectedItem);
       onClose();
       setSelectedItem(null);
-    } else if (allowDirectorySelect && currentPath && !targetFileName && !targetFolderName) {
-      // If directory selection is allowed and no file is selected, select current directory
-      // But only when targetFileName is not specified
-      onFileSelect({
-        name: currentPath.split('/').pop() || currentPath,
-        full_path: currentPath,
-        is_directory: true,
-        size: -1,
-        modified_time: '',
-      });
-      onClose();
+    } else if (allowDirectorySelect && currentPath) {
+      // If directory selection is allowed and current path has target files, select current directory
+      // This works for both cases: with or without targetFileName
+      if (!targetFileName && !targetFolderName) {
+        // No target specified, allow selecting current directory
+        onFileSelect({
+          name: currentPath.split('/').pop() || currentPath,
+          full_path: currentPath,
+          is_directory: true,
+          size: -1,
+          modified_time: '',
+        });
+        onClose();
+      } else if (currentPathHasTarget) {
+        // Target specified and current directory has target files
+        onFileSelect({
+          name: currentPath.split('/').pop() || currentPath,
+          full_path: currentPath,
+          is_directory: true,
+          size: -1,
+          modified_time: '',
+        });
+        onClose();
+      }
     }
   }, [
     selectedItem,
@@ -71,6 +91,7 @@ export default function FileBrowserModal({
     allowDirectorySelect,
     targetFileName,
     targetFolderName,
+    currentPathHasTarget,
     onFileSelect,
     onClose,
   ]);
@@ -201,6 +222,7 @@ export default function FileBrowserModal({
               defaultPath={defaultPath}
               allowDirectorySelect={allowDirectorySelect}
               allowFileSelect={allowFileSelect}
+              onCurrentPathTargetCheck={handleDirectoryTargetCheck}
             />
           </div>
 
@@ -212,16 +234,25 @@ export default function FileBrowserModal({
                   <span className={classLabel}>Selected:</span>
                   <span className={classValue}>{selectedItem.name}</span>
                 </div>
-              ) : allowDirectorySelect && currentPath && !targetFileName && !targetFolderName ? (
+              ) : allowDirectorySelect && currentPath ? (
                 <div className={classStatusRow}>
                   <MdFolderOpen className={classIcon} />
-                  <span className={classLabel}>Current Directory:</span>
+                  <span className={classLabel}>
+                    {targetFileName || targetFolderName
+                      ? currentPathHasTarget
+                        ? 'Current Directory (has target files):'
+                        : 'Current Directory:'
+                      : 'Current Directory:'}
+                  </span>
                   <span className={classValue}>{currentPath}</span>
+                  {currentPathHasTarget && (targetFileName || targetFolderName) && (
+                    <span className="ml-2 text-green-600 text-xs">✓</span>
+                  )}
                 </div>
               ) : (
                 <span>
                   {targetFileName || targetFolderName
-                    ? `Select a directory containing ${targetFileName || targetFolderName}`
+                    ? `Select a directory containing ${Array.isArray(targetFileName) ? targetFileName.join(' or ') : targetFileName || targetFolderName}`
                     : allowDirectorySelect && allowFileSelect
                     ? 'Select a file or folder, or use current directory'
                     : allowDirectorySelect
@@ -241,7 +272,7 @@ export default function FileBrowserModal({
                 onClick={handleConfirm}
                 disabled={
                   targetFileName || targetFolderName
-                    ? !(selectedItem && selectedItem.is_directory)
+                    ? !(selectedItem && selectedItem.is_directory) && !(allowDirectorySelect && currentPath && currentPathHasTarget)
                     : (!selectedItem && !(allowDirectorySelect && currentPath)) ||
                       (selectedItem && selectedItem.is_directory && !allowDirectorySelect) ||
                       (selectedItem && !selectedItem.is_directory && !allowFileSelect)

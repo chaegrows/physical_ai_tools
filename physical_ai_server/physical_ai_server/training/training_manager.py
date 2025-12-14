@@ -203,6 +203,9 @@ class TrainingManager:
             'pi0',
             'pi0fast',
             'smolvla',
+            'groot',
+            'groot-n1',
+            'gr00t',
         ]
 
         device_list = [

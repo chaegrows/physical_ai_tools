@@ -163,15 +163,46 @@ class DataConverter:
             leader_topic_types: Dict[str, Any],
             leader_joint_orders: Dict[str, List[str]]):
 
+        # Validate action
+        if action is None:
+            raise ValueError('Action is None')
+        if len(action) == 0:
+            raise ValueError('Action is empty')
+        
+        # Convert to list if needed
+        if isinstance(action, np.ndarray):
+            action = action.tolist()
+        elif isinstance(action, torch.Tensor):
+            action = action.cpu().numpy().tolist()
+        
+        action_len = len(action)
+        total_required = sum(len(value) for value in leader_joint_orders.values())
+        
+        if action_len < total_required:
+            raise ValueError(
+                f'Action length ({action_len}) is less than required ({total_required}). '
+                f'Joint orders require {total_required} values.'
+            )
+        
         start_idx = 0
         joint_pub_msgs = {}
 
         for key, value in leader_joint_orders.items():
             count = len(value)
+            
+            # Check bounds
+            if start_idx + count > action_len:
+                raise ValueError(
+                    f'Not enough action values for {key}. '
+                    f'Required {count} values starting at index {start_idx}, but action length is {action_len}'
+                )
+            
             action_slice = action[start_idx:start_idx + count]
             start_idx += count
+            
             if key.startswith('joint_order.'):
                 key = key.replace('joint_order.', '')
+            
             if leader_topic_types[key] == JointTrajectory:
                 joint_pub_msgs[key] = JointTrajectory(
                     joint_names=value,
@@ -179,6 +210,10 @@ class DataConverter:
                         positions=action_slice
                     )])
             elif leader_topic_types[key] == Twist:
+                if len(action_slice) < 3:
+                    raise ValueError(
+                        f'Not enough values for Twist message. Required 3, got {len(action_slice)}'
+                    )
                 tmp_twist = Twist()
                 tmp_twist.linear.x = float(action_slice[0])
                 tmp_twist.linear.y = float(action_slice[1])

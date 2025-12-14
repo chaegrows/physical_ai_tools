@@ -25,6 +25,8 @@ import time
 import traceback
 from typing import Optional
 
+import numpy as np
+
 from ament_index_python.packages import get_package_share_directory
 from physical_ai_interfaces.msg import (
     HFOperationStatus,
@@ -556,11 +558,34 @@ class PhysicalAIServer(Node):
                 self.timer_manager.stop(timer_name=self.operation_mode)
                 return
 
+            # Get task instruction safely
+            task_instruction = None
+            if self.task_instruction and len(self.task_instruction) > 0:
+                task_instruction = self.task_instruction[0]
+            
             action = self.inference_manager.predict(
                 images=camera_data,
                 state=follower_data,
-                task_instruction=self.task_instruction[0]
+                task_instruction=task_instruction
             )
+            
+            # Validate action before processing
+            if action is None:
+                raise ValueError('Action is None')
+            if len(action) == 0:
+                raise ValueError('Action is empty')
+            
+            # Check for NaN with detailed debugging
+            action_array = np.array(action)
+            nan_mask = np.isnan(action_array)
+            if nan_mask.any():
+                nan_indices = np.where(nan_mask)[0]
+                self.get_logger().error(f'Action contains NaN values at indices: {nan_indices[:10]} (showing first 10)')
+                self.get_logger().error(f'Action length: {len(action)}, Action shape: {action_array.shape}')
+                self.get_logger().error(f'Action dtype: {action_array.dtype}')
+                self.get_logger().error(f'Action min/max: {np.nanmin(action_array):.4f} / {np.nanmax(action_array):.4f}')
+                self.get_logger().error(f'Action sample (first 20): {action[:20]}')
+                raise ValueError('Action contains NaN values')
 
             self.get_logger().info(
                 f'Action data: {action}')

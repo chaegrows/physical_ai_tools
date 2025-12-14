@@ -447,6 +447,8 @@ class Communicator:
             response.current_path = result['current_path']
             response.parent_path = result['parent_path']
             response.selected_path = result['selected_path']
+            # Set current_path_has_target field if present in result
+            response.current_path_has_target = result.get('current_path_has_target', False)
 
             # Convert item dicts to BrowserItem objects
             response.items = []

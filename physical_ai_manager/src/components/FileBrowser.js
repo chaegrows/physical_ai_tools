@@ -479,6 +479,7 @@ export default function FileBrowser({
   defaultPath = null,
   allowDirectorySelect = false,
   allowFileSelect = true,
+  onCurrentPathTargetCheck = null,
 }) {
   const { browseFile } = useRosServiceCaller();
   const isInitializedRef = useRef(false);
@@ -523,6 +524,15 @@ export default function FileBrowser({
 
           if (onPathChange) {
             onPathChange(result.current_path);
+          }
+
+          // Check if current path has target files and notify parent
+          // Handle backward compatibility: use hasOwnProperty to safely check
+          if (onCurrentPathTargetCheck) {
+            const hasTarget = result.hasOwnProperty('current_path_has_target')
+              ? result.current_path_has_target
+              : false;
+            onCurrentPathTargetCheck(hasTarget);
           }
 
           // Server already checked for target files, just process the results

@@ -33,6 +33,7 @@ RUN cd ${COLCON_WS}/src/physical_ai_tools/lerobot && \
 
 RUN pip install setuptools==68.1.2
 RUN pip install 'numpy<2'
+RUN pip install decord
 
 RUN bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
     cd ${COLCON_WS} && \

@@ -432,6 +432,12 @@ export function useRosServiceCaller() {
           requestData
         );
 
+        // Handle backward compatibility: add current_path_has_target if not present
+        // This prevents errors when backend doesn't have the updated ROS interface yet
+        if (result && typeof result === 'object' && !result.hasOwnProperty('current_path_has_target')) {
+          result.current_path_has_target = false;
+        }
+
         console.log('browseFile service response:', result);
         return result;
       } catch (error) {

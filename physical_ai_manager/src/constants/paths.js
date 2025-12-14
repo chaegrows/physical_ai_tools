@@ -42,6 +42,8 @@ export const DEFAULT_PATHS = {
  */
 export const TARGET_FILES = {
   POLICY_MODEL: 'model.safetensors',
+  POLICY_CONFIG: 'config.json', // For GR00T and other models that use config.json
+  POLICY_MODEL_INDEX: 'model.safetensors.index.json', // For sharded GR00T models
   TRAIN_CONFIG: 'train_config.json',
 };
 

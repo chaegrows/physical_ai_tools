@@ -44,7 +44,8 @@ class FileBrowseUtils:
             'current_path': current_path,
             'parent_path': os.path.dirname(current_path),
             'selected_path': '',
-            'items': []
+            'items': [],
+            'current_path_has_target': False
         }
 
     def handle_go_parent_action(self, current_path):
@@ -59,7 +60,8 @@ class FileBrowseUtils:
                 'current_path': parent_path,
                 'parent_path': os.path.dirname(parent_path),
                 'selected_path': '',
-                'items': self._get_directory_items(parent_path)
+                'items': self._get_directory_items(parent_path),
+                'current_path_has_target': False
             }
         else:
             return {
@@ -68,7 +70,8 @@ class FileBrowseUtils:
                 'current_path': current_path,
                 'parent_path': '',
                 'selected_path': '',
-                'items': []
+                'items': [],
+                'current_path_has_target': False
             }
 
     def handle_go_parent_with_target_check(self,
@@ -86,13 +89,21 @@ class FileBrowseUtils:
                 items = self._get_directories_with_target_check(
                     parent_path, target_files, target_folders)
 
+                # Check if parent directory itself has target files/folders
+                parent_dir_has_target = False
+                if target_files or target_folders:
+                    parent_dir_check = self._check_directories_for_targets(
+                        [parent_path], target_files, target_folders)
+                    parent_dir_has_target = parent_dir_check.get(parent_path, False)
+
                 return {
                     'success': True,
                     'message': 'Navigated to parent directory with target check',
                     'current_path': parent_path,
                     'parent_path': os.path.dirname(parent_path),
                     'selected_path': '',
-                    'items': items
+                    'items': items,
+                    'current_path_has_target': parent_dir_has_target
                 }
             except Exception as e:
                 error_msg = f'Error during parent navigation with target check: {str(e)}'
@@ -102,7 +113,8 @@ class FileBrowseUtils:
                     'current_path': current_path,
                     'parent_path': '',
                     'selected_path': '',
-                    'items': []
+                    'items': [],
+                    'current_path_has_target': False
                 }
         else:
             return {
@@ -111,7 +123,8 @@ class FileBrowseUtils:
                 'current_path': current_path,
                 'parent_path': '',
                 'selected_path': '',
-                'items': []
+                'items': [],
+                'current_path_has_target': False
             }
 
     def handle_browse_action(self, current_path, target_name=None):
@@ -120,9 +133,13 @@ class FileBrowseUtils:
         current_path = os.path.abspath(current_path)
 
         if target_name:
-            return self._handle_target_selection(current_path, target_name)
+            result = self._handle_target_selection(current_path, target_name)
+            result['current_path_has_target'] = False
+            return result
         else:
-            return self._handle_directory_browse(current_path)
+            result = self._handle_directory_browse(current_path)
+            result['current_path_has_target'] = False
+            return result
 
     def handle_browse_with_target_check(self,
                                         current_path: str,
@@ -143,6 +160,13 @@ class FileBrowseUtils:
                 try:
                     items = self._get_directories_with_target_check(
                         target_path, target_files, target_folders)
+                    
+                    # Check if target directory itself has target files/folders
+                    target_dir_has_target = False
+                    if target_files or target_folders:
+                        target_dir_check = self._check_directories_for_targets(
+                            [target_path], target_files, target_folders)
+                        target_dir_has_target = target_dir_check.get(target_path, False)
 
                     return {
                         'success': True,
@@ -150,7 +174,8 @@ class FileBrowseUtils:
                         'current_path': target_path,
                         'parent_path': current_path,
                         'selected_path': target_path,
-                        'items': items
+                        'items': items,
+                        'current_path_has_target': target_dir_has_target
                     }
                 except Exception as e:
                     error_msg = f'Error during navigation with target check: {str(e)}'
@@ -160,25 +185,37 @@ class FileBrowseUtils:
                         'current_path': current_path,
                         'parent_path': '',
                         'selected_path': '',
-                        'items': []
+                        'items': [],
+                        'current_path_has_target': False
                     }
             else:
                 # File selection or non-existent path - use standard logic
-                return self.handle_browse_action(current_path, target_name)
+                result = self.handle_browse_action(current_path, target_name)
+                result['current_path_has_target'] = False
+                return result
         else:
             # Handle directory browsing with parallel target checking
             try:
                 items = self._get_directories_with_target_check(
                     current_path, target_files, target_folders)
+                
+                # Check if current directory itself has target files/folders
+                current_dir_has_target = False
+                if target_files or target_folders:
+                    current_dir_check = self._check_directories_for_targets(
+                        [current_path], target_files, target_folders)
+                    current_dir_has_target = current_dir_check.get(current_path, False)
 
-                return {
+                result = {
                     'success': True,
                     'message': 'Directory browsed successfully with target check',
                     'current_path': current_path,
                     'parent_path': self._get_parent_path(current_path),
                     'selected_path': '',
-                    'items': items
+                    'items': items,
+                    'current_path_has_target': current_dir_has_target
                 }
+                return result
             except Exception as e:
                 return {
                     'success': False,
@@ -186,7 +223,8 @@ class FileBrowseUtils:
                     'current_path': current_path,
                     'parent_path': '',
                     'selected_path': '',
-                    'items': []
+                    'items': [],
+                    'current_path_has_target': False
                 }
 
     def _handle_target_selection(self, current_path, target_name):
@@ -202,7 +240,8 @@ class FileBrowseUtils:
                     'current_path': target_path,
                     'parent_path': current_path,
                     'selected_path': target_path,
-                    'items': self._get_directory_items(target_path)
+                    'items': self._get_directory_items(target_path),
+                    'current_path_has_target': False
                 }
             else:
                 # Select file
@@ -212,7 +251,8 @@ class FileBrowseUtils:
                     'current_path': current_path,
                     'parent_path': os.path.dirname(current_path),
                     'selected_path': target_path,
-                    'items': self._get_directory_items(current_path)
+                    'items': self._get_directory_items(current_path),
+                    'current_path_has_target': False
                 }
         else:
             return {
@@ -221,7 +261,8 @@ class FileBrowseUtils:
                 'current_path': current_path,
                 'parent_path': os.path.dirname(current_path),
                 'selected_path': '',
-                'items': self._get_directory_items(current_path)
+                'items': self._get_directory_items(current_path),
+                'current_path_has_target': False
             }
 
     def _handle_directory_browse(self, current_path):
@@ -233,7 +274,8 @@ class FileBrowseUtils:
                 'current_path': current_path,
                 'parent_path': os.path.dirname(current_path),
                 'selected_path': '',
-                'items': self._get_directory_items(current_path)
+                'items': self._get_directory_items(current_path),
+                'current_path_has_target': False
             }
         else:
             # Return error if directory doesn't exist
@@ -243,7 +285,8 @@ class FileBrowseUtils:
                 'current_path': '',
                 'parent_path': '',
                 'selected_path': '',
-                'items': []
+                'items': [],
+                'current_path_has_target': False
             }
 
     def _check_directories_for_targets(
@@ -252,9 +295,9 @@ class FileBrowseUtils:
         target_files: Set[str] = None,
         target_folders: Set[str] = None
     ) -> Dict[str, bool]:
-        """Check multiple directories in parallel for presence of ALL target files and folders."""
+        """Check multiple directories in parallel for presence of ANY target files and folders."""
         def check_single_directory(dir_path: str) -> tuple:
-            """Check if ALL target files and folders exist in a single directory."""
+            """Check if ANY target file or folder exists in a single directory."""
             try:
                 found_files = set()
                 found_folders = set()
@@ -269,9 +312,11 @@ class FileBrowseUtils:
                         elif entry.is_dir(follow_symlinks=False):
                             found_folders.add(entry_name)
 
-                # Check if ALL required targets are found
-                files_satisfied = not target_files or target_files.issubset(found_files)
-                folders_satisfied = not target_folders or target_folders.issubset(found_folders)
+                # Check if ANY target file/folder is found (changed from ALL to ANY)
+                # This allows matching directories that have at least one of the target files
+                # Useful for GR00T models which may have config.json OR model.safetensors.index.json
+                files_satisfied = not target_files or bool(target_files.intersection(found_files))
+                folders_satisfied = not target_folders or bool(target_folders.intersection(found_folders))
 
                 return (dir_path, files_satisfied and folders_satisfied)
 
