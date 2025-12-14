@@ -51,4 +51,5 @@ export const TARGET_FOLDERS = {
   DATASET_METADATA: 'meta',
   DATASET_VIDEO: 'videos',
   DATASET_DATA: 'data',
+  PRETRAINED_MODEL: 'pretrained_model', // For GR00T/LeRobot checkpoint folders
 };

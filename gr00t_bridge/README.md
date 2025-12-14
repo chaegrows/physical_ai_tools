@@ -285,3 +285,18 @@ ros2 service call /task/command physical_ai_interfaces/srv/SendCommand \
 - Training config: `/workspace/Isaac-GR00T/ffw_sg2_data_config.py`
 - Robot config: `physical_ai_server/config/ffw_sg2_rev1_config.yaml`
 - Original inference manager: `physical_ai_server/inference/inference_manager.py`
+
+
+
+
+## Test
+```bash
+# terminal 1
+ros2 bag play 123/ --clock -l --exclude-topics /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+
+# terminal 2
+python3 scripts/run_gr00t_inference_offline.py     --checkpoint /workspace/Isaac-GR00T/results/gr00t/checkpoint-100000     --publish     --use-sim-time
+
+ros2 topic echo /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+
+```

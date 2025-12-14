@@ -22,3 +22,17 @@ To access datasets and pre-trained models for our open-source platforms, see:
 
 To use the Docker image for running ROS packages and Physical AI tools with the AI Worker, visit:
   - [Docker Images](https://hub.docker.com/r/robotis/ros/tags)
+
+
+## docker rebuild
+```bash
+# Docker 컨테이너 밖에서 (호스트 시스템)
+cd /media/metafarmers/7440017c-39b5-476a-a24b-4fb0a9c24140/chae/dualArm_rosbag/physical_ai_tools
+
+# Manager 재빌드
+docker compose build physical_ai_manager
+
+# 또는 전체 재시작
+docker compose down
+docker compose up -d
+```
