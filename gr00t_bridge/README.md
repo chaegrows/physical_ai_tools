@@ -292,13 +292,28 @@ ros2 service call /task/command physical_ai_interfaces/srv/SendCommand \
 ## Test
 - 251214 : Interface 사용하지 않고 scripts 로 테스트 까지 완료함 
 - [ ] Test 실제 모델로 해보기
+
+
+### docker enter
 ```bash
+
 # terminal 1
-ros2 bag play 123/ --clock -l --exclude-topics /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
+ros2 bag play 123/ --clock -l --exclude-topics /leader/joint_trajectory_command_broadcaster_left/joint_trajectory /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
 
 # terminal 2
+cd /workspace/Isaac-GR00T
+pip install -e . # 안되면 ~/gr00t_bridge에 있는 requirements.txt 참고 
+cd ~/gr00t_bridge 
 python3 scripts/run_gr00t_inference_offline.py     --checkpoint /workspace/Isaac-GR00T/results/gr00t/checkpoint-100000     --publish     --use-sim-time
 
+# terminal 3
 ros2 topic echo /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
 
+```
+
+### issacsim play 
+```
+cd isaac_dry_run
+conda activate isaacsim 
+(Isaac Sim) python ffw_sg2_inference_replay.py
 ```
