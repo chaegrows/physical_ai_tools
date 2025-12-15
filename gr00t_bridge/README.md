@@ -290,6 +290,8 @@ ros2 service call /task/command physical_ai_interfaces/srv/SendCommand \
 
 
 ## Test
+- 251214 : Interface 사용하지 않고 scripts 로 테스트 까지 완료함 
+- [ ] Test 실제 모델로 해보기
 ```bash
 # terminal 1
 ros2 bag play 123/ --clock -l --exclude-topics /leader/joint_trajectory_command_broadcaster_left/joint_trajectory
