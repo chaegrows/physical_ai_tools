@@ -134,6 +134,18 @@ Examples:
         default=1.0,
         help="Rate at which to print actions (Hz)"
     )
+    parser.add_argument(
+        "--press-pub",
+        action="store_true",
+        default=False,
+        help="Wait for Enter key before each publish (for manual control)"
+    )
+    parser.add_argument(
+        "--velocity-scale",
+        type=float,
+        default=1.0,
+        help="Velocity scale factor (1.0=normal, 0.5=half speed, 2.0=double speed)"
+    )
     
     return parser.parse_args()
 
@@ -174,6 +186,8 @@ def main():
     print(f"  Joint topic: {args.joint_topic}")
     if not dry_run:
         print(f"  Action topic: {args.action_topic}")
+        print(f"  Press before publish: {args.press_pub}")
+        print(f"  Velocity scale: {args.velocity_scale}x {'(normal)' if args.velocity_scale == 1.0 else '(slower)' if args.velocity_scale < 1.0 else '(faster)'}")
     print("=" * 60)
     
     # Import ROS2
@@ -199,6 +213,8 @@ def main():
             Parameter("joint_state_topic", Parameter.Type.STRING, args.joint_topic),
             Parameter("action_topic", Parameter.Type.STRING, args.action_topic),
             Parameter("print_rate", Parameter.Type.DOUBLE, float(args.print_rate)),
+            Parameter("press_pub", Parameter.Type.BOOL, args.press_pub),
+            Parameter("velocity_scale", Parameter.Type.DOUBLE, float(args.velocity_scale)),
         ]
         
         if args.use_sim_time:

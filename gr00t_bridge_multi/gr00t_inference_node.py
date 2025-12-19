@@ -117,6 +117,13 @@ class Gr00tMultiCamInferenceNode(Node):
         self.action_topic = self.get_parameter("action_topic").value
         self.print_rate = self.get_parameter("print_rate").value
         
+        # Get velocity scale (controls robot movement speed)
+        # 1.0 = normal (matches inference rate), 0.5 = half speed, 2.0 = double speed
+        self.velocity_scale = self.get_parameter("velocity_scale").value
+        if self.velocity_scale <= 0:
+            self.velocity_scale = 1.0
+            self.get_logger().warn("velocity_scale must be > 0, using 1.0")
+        
         # Initialize state - image buffers
         self.latest_images: Dict[str, Optional[np.ndarray]] = {
             "ego_view": None,
@@ -202,6 +209,7 @@ class Gr00tMultiCamInferenceNode(Node):
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("action_topic", "/gr00t/predicted_action")
         self.declare_parameter("print_rate", 1.0)  # Print at 1 Hz
+        self.declare_parameter("velocity_scale", 1.0)  # Velocity scale (1.0=normal, 0.5=half speed, 2.0=double speed)
     
     def _print_startup_info(self):
         """Print startup information."""
@@ -457,12 +465,23 @@ class Gr00tMultiCamInferenceNode(Node):
     def _publish_action(self, action):
         """Publish predicted action as JointTrajectory."""
         first_action = action.get_first_timestep()
-        current_stamp = self.get_clock().now().to_msg()
+        
+        # Use zero timestamp (matching original rosbag format)
+        from builtin_interfaces.msg import Time as TimeMsg
+        zero_stamp = TimeMsg(sec=0, nanosec=0)
+        
+        # Calculate time_from_start based on inference rate and velocity scale
+        # Base duration = 1/inference_rate (time between commands)
+        # velocity_scale: 1.0=normal, 0.5=half speed (2x duration), 2.0=double speed (0.5x duration)
+        base_duration_sec = 1.0 / self.inference_rate
+        scaled_duration_sec = base_duration_sec / self.velocity_scale
+        duration_ns = int(scaled_duration_sec * 1_000_000_000)  # seconds to nanoseconds
+        trajectory_duration = Duration(sec=0, nanosec=duration_ns)
         
         # ========== LEFT ARM ==========
         left_msg = JointTrajectory()
         left_msg.header = Header()
-        left_msg.header.stamp = current_stamp
+        left_msg.header.stamp = zero_stamp  # Use zero like original rosbag
         left_msg.header.frame_id = ""
         left_msg.joint_names = (
             self.joint_config.LEFT_ARM_JOINTS +
@@ -474,13 +493,13 @@ class Gr00tMultiCamInferenceNode(Node):
             first_action["left_arm"].flatten().tolist() +
             first_action["left_hand"].flatten().tolist()
         )
-        left_point.time_from_start = Duration(sec=0, nanosec=100000000)  # 100ms
+        left_point.time_from_start = trajectory_duration
         left_msg.points = [left_point]
         
         # ========== RIGHT ARM ==========
         right_msg = JointTrajectory()
         right_msg.header = Header()
-        right_msg.header.stamp = current_stamp
+        right_msg.header.stamp = zero_stamp  # Use zero like original rosbag
         right_msg.header.frame_id = ""
         right_msg.joint_names = (
             self.joint_config.RIGHT_ARM_JOINTS +
@@ -492,13 +511,13 @@ class Gr00tMultiCamInferenceNode(Node):
             first_action["right_arm"].flatten().tolist() +
             first_action["right_hand"].flatten().tolist()
         )
-        right_point.time_from_start = Duration(sec=0, nanosec=100000000)
+        right_point.time_from_start = trajectory_duration
         right_msg.points = [right_point]
         
         # ========== COMBINED (debug) ==========
         combined_msg = JointTrajectory()
         combined_msg.header = Header()
-        combined_msg.header.stamp = current_stamp
+        combined_msg.header.stamp = zero_stamp  # Use zero like original rosbag
         combined_msg.header.frame_id = ""
         combined_msg.joint_names = (
             self.joint_config.LEFT_ARM_JOINTS +
@@ -514,7 +533,7 @@ class Gr00tMultiCamInferenceNode(Node):
             first_action["right_arm"].flatten().tolist() +
             first_action["right_hand"].flatten().tolist()
         )
-        combined_point.time_from_start = Duration(sec=0, nanosec=100000000)
+        combined_point.time_from_start = trajectory_duration
         combined_msg.points = [combined_point]
         
         # Publish to all topics

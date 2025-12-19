@@ -308,7 +308,7 @@ ros2 bag play /path/to/rosbag --clock -l \
     --exclude-topics \
     /leader/joint_trajectory_command_broadcaster_left/joint_trajectory \
     /leader/joint_trajectory_command_broadcaster_right/joint_trajectory
-    
+
 ```
 
 **Terminal 2** (GR00T inference):
@@ -333,7 +333,7 @@ cd /media/metafarmers/7440017c-39b5-476a-a24b-4fb0a9c24140/chae/dualArm_rosbag/p
 ./docker/container.sh enter
 
 # terminal 1 - ros2 bag
-ros2 bag play /path/to/rosbag --clock -l \
+ros2 bag play /workspace/rosbag2/dkim/ffw_sg2_rev1_dkim/123 --clock -l \
     --exclude-topics \
     /leader/joint_trajectory_command_broadcaster_left/joint_trajectory \
     /leader/joint_trajectory_command_broadcaster_right/joint_trajectory

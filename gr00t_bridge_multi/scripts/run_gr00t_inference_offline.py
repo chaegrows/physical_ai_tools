@@ -159,6 +159,12 @@ ros2 bag play command:
         default=1.0,
         help="Rate at which to print actions (Hz)"
     )
+    parser.add_argument(
+        "--velocity-scale",
+        type=float,
+        default=1.0,
+        help="Velocity scale factor (1.0=normal, 0.5=half speed, 2.0=double speed)"
+    )
     
     return parser.parse_args()
 
@@ -203,6 +209,7 @@ def main():
     print(f"  joint_states:   {args.joint_topic}")
     if not dry_run:
         print(f"  action output:  {args.action_topic}")
+        print(f"  velocity scale: {args.velocity_scale}x {'(normal)' if args.velocity_scale == 1.0 else '(slower)' if args.velocity_scale < 1.0 else '(faster)'}")
     print("=" * 70)
     
     # Import ROS2
@@ -230,6 +237,7 @@ def main():
             Parameter("joint_state_topic", Parameter.Type.STRING, args.joint_topic),
             Parameter("action_topic", Parameter.Type.STRING, args.action_topic),
             Parameter("print_rate", Parameter.Type.DOUBLE, float(args.print_rate)),
+            Parameter("velocity_scale", Parameter.Type.DOUBLE, float(args.velocity_scale)),
         ]
         
         if args.use_sim_time:
